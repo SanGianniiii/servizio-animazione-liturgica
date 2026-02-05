@@ -31,34 +31,37 @@
         .details-open { background-color: #f8fafc; } /* Grigio chiarissimo quando aperto */
     </style>
 </head>
-<body class="bg-gray-50 text-slate-800 min-h-screen pb-10">
+<body class="bg-gray-100 text-slate-800 min-h-screen pb-10">
 
-    <header class="bg-gradient-to-r from-blue-900 to-blue-700 text-white p-6 pb-12 shadow-lg sticky top-0 z-50">
+    <header class="bg-gradient-to-r from-blue-900 to-blue-700 text-white p-5 shadow-lg sticky top-0 z-50">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <div>
-                <h1 class="text-2xl font-black tracking-tight">Cantori</h1>
-                <p class="text-blue-200 text-xs font-medium uppercase tracking-widest mt-0.5">Calendario Liturgico</p>
+                <h1 class="text-xl font-black tracking-tight">Cantori</h1>
+                <p class="text-blue-200 text-[10px] font-bold uppercase tracking-widest mt-0.5">Calendario Liturgico</p>
             </div>
-            <button onclick="richiediPermesso()" class="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 p-2.5 rounded-xl transition-all active:scale-95 flex items-center justify-center group">
+            <button onclick="richiediPermesso()" class="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 p-2 rounded-xl transition-all active:scale-95 flex items-center justify-center group">
                 <span class="text-xl group-hover:rotate-12 transition-transform">🔔</span>
             </button>
         </div>
     </header>
 
-    <main class="max-w-md mx-auto px-4 -mt-6 space-y-6">
+    <main class="max-w-md mx-auto px-4 pt-4 space-y-6">
 
-        <div class="bg-white p-2 rounded-2xl shadow-xl shadow-blue-900/5 border border-gray-100 flex items-center">
-            <div class="pl-4 pr-2 text-gray-400">
+        <div class="bg-white p-2 rounded-xl shadow-sm border border-blue-100 flex items-center">
+            <div class="pl-4 pr-3 text-blue-500">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
             <select id="filtroNome" onchange="filtraTurni()" 
                     class="w-full p-3 bg-transparent text-slate-700 font-bold outline-none cursor-pointer appearance-none text-sm">
-                <option value="">Mostra tutti i servizi</option>
+                <option value="">Filtra servizi per cantore</option>
             </select>
         </div>
 
         <div id="container-lista">
-            <h2 id="titolo-sezione" class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 pl-2">In Programma</h2>
+            <div class="flex items-center justify-between mb-4 px-2">
+                <h2 id="titolo-sezione" class="text-xs font-bold text-slate-400 uppercase tracking-widest">In Programma</h2>
+            </div>
+            
             <div id="lista-turni" class="space-y-4">
                 <div class="flex flex-col items-center justify-center py-12 text-slate-400 space-y-3">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -254,3 +257,4 @@
     </script>
 </body>
 </html>
+
