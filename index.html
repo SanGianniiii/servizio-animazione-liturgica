@@ -247,7 +247,7 @@
             Notification.requestPermission().then(permission => {
                 if (permission === 'granted') {
                     // Sostituisci con la VAPID Key presa da Firebase > Cloud Messaging > Web Push
-                    messaging.getToken({ vapidKey: 'INSERISCI_LA_TUA_CHIAVE_VAPID_PUBBLICA' })
+                    messaging.getToken({ vapidKey: 'BFZrSR_2DQTR8QZYhsgG1nywKv9H_HaHphBL-qeOb9caRnrgJNJjyoWMccZMbPbF1gt5VLL8KuhxgKo-x4OzT6w' })
                     .then(token => alert("Notifiche attivate con successo!"))
                     .catch(err => console.error(err));
                 }
@@ -259,5 +259,6 @@
     </script>
 </body>
 </html>
+
 
 
