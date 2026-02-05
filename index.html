@@ -6,9 +6,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1d4ed8">
     <title>Cantori - Calendario</title>
-    
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js"></script>
 
@@ -18,6 +16,9 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .card-anim { animation: fadeInUp 0.4s ease-out forwards; }
+        .details-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .details-open .details-content { max-height: 200px; }
+        .details-open .arrow-icon { transform: rotate(180deg); }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-900 font-sans min-h-screen">
@@ -29,7 +30,7 @@
                 <p class="text-blue-100 text-xs">Servizio Messe & Eventi</p>
             </div>
             <button onclick="richiediPermesso()" class="bg-blue-600 hover:bg-blue-500 p-3 rounded-xl shadow-lg transition-all active:scale-95 border border-blue-400/30">
-                🔔 <span class="text-xs ml-1 font-bold">ATTIVA</span>
+                🔔 <span class="text-xs ml-1 font-bold uppercase">Avvisami</span>
             </button>
         </div>
     </header>
@@ -41,7 +42,7 @@
             <div class="relative">
                 <select id="filtroNome" onchange="filtraTurni()" 
                         class="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl text-gray-800 font-bold focus:ring-2 focus:ring-blue-600 outline-none cursor-pointer appearance-none shadow-inner">
-                    <option value="">✨ Mostra tutti i servizi</option>
+                    <option value="">✨ Tutti i cantori</option>
                 </select>
                 <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -54,7 +55,7 @@
             <div id="lista-turni" class="space-y-4">
                 <div class="text-center py-10 text-gray-400">
                     <div class="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-blue-600 rounded-full mb-2"></div>
-                    <p class="text-xs font-medium italic">Sincronizzazione col foglio Google...</p>
+                    <p class="text-xs font-medium italic">Aggiornamento calendario...</p>
                 </div>
             </div>
         </div>
@@ -62,56 +63,37 @@
     </main>
 
     <script>
-        // --- CONFIGURAZIONE DATI ---
         const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBN24W-OjHLzE_nGhR55i_Y56r03-lgM4VcjuvDkF7thIsOsBZiq3XqLPUWRG3Hnohil1fJPf3PH0U/pub?output=csv";
         
-        const firebaseConfig = {
-            apiKey: "IL_TUO_API_KEY",
-            projectId: "IL_TUO_PROJECT_ID",
-            messagingSenderId: "IL_TUO_SENDER_ID",
-            appId: "IL_TUO_APP_ID"
-        };
-        // ----------------------------
-
         let tuttiITurni = [];
-        firebase.initializeApp(firebaseConfig);
-        const messaging = ('serviceWorker' in navigator && 'PushManager' in window) ? firebase.messaging() : null;
 
         async function init() {
             try {
                 const response = await fetch(SHEET_URL);
                 const csvData = await response.text();
-                
-                // Parsing CSV semplice
                 const righe = csvData.split('\n').slice(1);
                 let setNomi = new Set();
 
                 tuttiITurni = righe.map(riga => {
-                    // Gestisce i nomi tra virgolette se presenti nel CSV
-                    const colonne = riga.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    const col = riga.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
                     
-                    const dataGiorno = colonne[0] ? colonne[0].trim() : "";
-                    const servizio = colonne[1] ? colonne[1].trim() : "";
-                    const cantoriString = colonne[2] ? colonne[2].replace(/"/g, '').trim() : "";
-                    
-                    // Popola il set dei nomi per il menu
-                    const nomiArray = cantoriString.split(';');
-                    nomiArray.forEach(n => {
-                        const nomePulito = n.trim();
-                        if(nomePulito) setNomi.add(nomePulito);
-                    });
+                    // Ordine: 0:Giorno, 1:Servizio, 2:Orario, 3:Cantori, 4:Note
+                    const cantoriString = col[3] ? col[3].replace(/"/g, '').trim() : "";
+                    cantoriString.split(';').forEach(n => { if(n.trim()) setNomi.add(n.trim()); });
 
                     return {
-                        data: dataGiorno,
-                        servizio: servizio,
-                        cantori: cantoriString.replace(/;/g, ', ')
+                        giorno: col[0] ? col[0].trim() : "",
+                        servizio: col[1] ? col[1].trim() : "",
+                        orario: col[2] ? col[2].trim() : "",
+                        cantori: cantoriString.replace(/;/g, ', '),
+                        note: col[4] ? col[4].replace(/"/g, '').trim() : ""
                     };
-                }).filter(t => t.data !== "");
+                }).filter(t => t.giorno !== "");
 
                 popolaSelect(Array.from(setNomi).sort());
                 renderizza(tuttiITurni);
             } catch (err) {
-                document.getElementById('lista-turni').innerHTML = `<p class="text-center text-red-500 text-xs">Errore nel caricamento dei dati: ${err.message}</p>`;
+                document.getElementById('lista-turni').innerHTML = `<p class="text-center text-red-500 text-xs italic">Errore caricamento dati.</p>`;
             }
         }
 
@@ -125,24 +107,45 @@
             });
         }
 
+        function toggleDetails(element) {
+            element.classList.toggle('details-open');
+        }
+
         function renderizza(lista) {
             const container = document.getElementById('lista-turni');
             if(lista.length === 0) {
-                container.innerHTML = `<p class="text-center text-gray-400 py-10">Nessun servizio in programma.</p>`;
+                container.innerHTML = `<p class="text-center text-gray-400 py-10">Nessun servizio trovato.</p>`;
                 return;
             }
 
             container.innerHTML = lista.map(t => `
-                <div class="card-anim bg-white p-5 rounded-2xl shadow-sm border-l-4 border-blue-600 flex items-center justify-between group">
-                    <div class="flex-1">
-                        <div class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">${t.data}</div>
-                        <h3 class="font-bold text-gray-800 text-base leading-tight group-hover:text-blue-700 transition-colors">${t.servizio}</h3>
-                        <div class="flex items-center mt-2 text-gray-500 text-xs font-medium">
-                            <span class="mr-1.5 opacity-60">👥</span> ${t.cantori}
+                <div onclick="toggleDetails(this)" class="card-anim bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer transition-all active:scale-[0.98]">
+                    <div class="p-5 flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="bg-blue-50 text-blue-700 p-2 rounded-xl text-center min-w-[65px] border border-blue-100">
+                                <span class="block text-[10px] font-black uppercase leading-none mb-1">${t.giorno}</span>
+                                <span class="block text-sm font-black">${t.orario}</span>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-800 text-base leading-tight">${t.servizio}</h3>
+                                <p class="text-blue-600 text-[11px] font-bold mt-1 uppercase tracking-tighter">Tocca per dettagli</p>
+                            </div>
                         </div>
+                        <svg class="w-5 h-5 text-gray-300 arrow-icon transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </div>
-                    <div class="ml-4 opacity-20 group-hover:opacity-100 transition-opacity text-blue-600">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    
+                    <div class="details-content bg-gray-50 border-t border-gray-100">
+                        <div class="p-5 space-y-3">
+                            <div>
+                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cantori assegnati</span>
+                                <p class="text-sm text-gray-700 font-medium">${t.cantori || 'Da definire'}</p>
+                            </div>
+                            ${t.note ? `
+                            <div>
+                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Note servizio</span>
+                                <p class="text-sm text-gray-600 italic leading-relaxed">${t.note}</p>
+                            </div>` : ''}
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -151,38 +154,18 @@
         function filtraTurni() {
             const scelto = document.getElementById('filtroNome').value;
             const titolo = document.getElementById('titolo-sezione');
-            
             if (!scelto) {
                 titolo.textContent = "Prossimi appuntamenti";
                 renderizza(tuttiITurni);
             } else {
-                titolo.textContent = `Servizi per: ${scelto}`;
+                titolo.textContent = `Servizi di: ${scelto}`;
                 const filtrati = tuttiITurni.filter(t => t.cantori.toLowerCase().includes(scelto));
                 renderizza(filtrati);
             }
         }
 
-        function richiediPermesso() {
-            if (!messaging) return alert("Le notifiche non sono supportate da questo browser.");
-            
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                    messaging.getToken({ vapidKey: 'INSERISCI_LA_TUA_CHIAVE_VAPID_PUBBLICA' })
-                    .then(token => {
-                        console.log("Token per Admin:", token);
-                        alert("Perfetto! Notifiche attivate.");
-                    }).catch(err => console.error("Errore token:", err));
-                }
-            });
-        }
-
-        // Avvio
         init();
-
-        // Registrazione Service Worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js').then(() => console.log("SW Registrato"));
-        }
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
     </script>
 </body>
 </html>
