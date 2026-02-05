@@ -6,7 +6,9 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1d4ed8">
     <title>Cantori - Calendario</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js"></script>
 
@@ -17,7 +19,7 @@
         }
         .card-anim { animation: fadeInUp 0.4s ease-out forwards; }
         .details-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-in-out; }
-        .details-open .details-content { max-height: 150px; }
+        .details-open .details-content { max-height: 200px; }
         .details-open .arrow-icon { transform: rotate(180deg); }
     </style>
 </head>
@@ -26,11 +28,12 @@
     <header class="bg-blue-700 text-white p-6 shadow-md sticky top-0 z-50">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <div>
-                <h1 class="text-xl font-bold italic tracking-tight">Cantori Parrocchia</h1>
-                <p class="text-blue-100 text-xs">Gestione Servizi Liturgici</p>
+                <h1 class="text-xl font-bold italic tracking-tight text-white">Cantori Parrocchia</h1>
+                <p class="text-blue-100 text-[10px] uppercase tracking-widest font-medium">Servizi Liturgici</p>
             </div>
-            <button onclick="richiediPermesso()" class="bg-blue-600 hover:bg-blue-500 p-3 rounded-xl shadow-lg transition-all active:scale-95 border border-blue-400/30">
-                🔔 <span class="text-xs ml-1 font-bold uppercase">Avvisami</span>
+            <button onclick="richiediPermesso()" class="bg-blue-600 hover:bg-blue-500 p-2.5 rounded-xl shadow-lg transition-all active:scale-95 border border-blue-400/30 text-white flex items-center">
+                <span class="text-sm">🔔</span>
+                <span class="text-[10px] ml-1.5 font-bold uppercase">Attiva</span>
             </button>
         </div>
     </header>
@@ -38,11 +41,11 @@
     <main class="max-w-md mx-auto p-4 space-y-6">
 
         <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
-            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Filtra per tuo nome</label>
+            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Filtra per Cantore</label>
             <div class="relative">
                 <select id="filtroNome" onchange="filtraTurni()" 
                         class="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl text-gray-800 font-bold focus:ring-2 focus:ring-blue-600 outline-none cursor-pointer appearance-none shadow-inner">
-                    <option value="">✨ Tutti i servizi</option>
+                    <option value="">✨ Mostra tutti i servizi</option>
                 </select>
                 <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -51,43 +54,73 @@
         </div>
 
         <div id="container-lista">
-            <h2 id="titolo-sezione" class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 px-2">Calendario Servizi</h2>
+            <h2 id="titolo-sezione" class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 px-2 italic">Prossimi impegni</h2>
             <div id="lista-turni" class="space-y-4">
-                <div class="text-center py-10 text-gray-400 italic text-sm">Caricamento dati...</div>
+                <div class="text-center py-10 text-gray-400">
+                    <div class="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-blue-600 rounded-full mb-2"></div>
+                    <p class="text-xs font-medium italic">Sincronizzazione calendario...</p>
+                </div>
             </div>
         </div>
 
     </main>
 
     <script>
+        // --- CONFIGURAZIONE ---
         const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBN24W-OjHLzE_nGhR55i_Y56r03-lgM4VcjuvDkF7thIsOsBZiq3XqLPUWRG3Hnohil1fJPf3PH0U/pub?output=csv";
+        
+        const firebaseConfig = {
+            apiKey: "IL_TUO_API_KEY",
+            projectId: "IL_TUO_PROJECT_ID",
+            messagingSenderId: "IL_TUO_SENDER_ID",
+            appId: "IL_TUO_APP_ID"
+        };
+        // ----------------------
+
         let tuttiITurni = [];
+        firebase.initializeApp(firebaseConfig);
+        const messaging = ('serviceWorker' in navigator && 'PushManager' in window) ? firebase.messaging() : null;
 
         async function init() {
             try {
                 const response = await fetch(SHEET_URL);
                 const csvData = await response.text();
                 const righe = csvData.split('\n').slice(1);
+                
                 let setNomi = new Set();
+                const oggi = new Date();
+                oggi.setHours(0, 0, 0, 0);
 
                 tuttiITurni = righe.map(riga => {
                     const col = riga.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    if(col.length < 3) return null;
+
+                    const dataStr = col[0] ? col[0].trim() : "";
+                    
+                    // Conversione data per filtro (supporta DD/MM o DD/MM/YYYY)
+                    const parti = dataStr.split('/');
+                    const anno = parti[2] ? parti[2] : oggi.getFullYear();
+                    const dataEvento = new Date(anno, parti[1] - 1, parti[0]);
+
+                    // Filtro: se la data è passata, scarta
+                    if (dataEvento < oggi) return null;
+
                     const cantoriStr = col[3] ? col[3].replace(/"/g, '').trim() : "";
                     cantoriStr.split(';').forEach(n => { if(n.trim()) setNomi.add(n.trim()); });
 
                     return {
-                        giorno: col[0] ? col[0].trim() : "",
-                        servizio: col[1] ? col[1].trim() : "",
-                        orario: col[2] ? col[2].trim() : "",
+                        giorno: dataStr,
+                        servizio: col[1] ? col[1].trim() : "Messa",
+                        orario: col[2] ? col[2].trim() : "--:--",
                         cantori: cantoriStr.replace(/;/g, ', '),
                         note: col[4] ? col[4].replace(/"/g, '').trim() : ""
                     };
-                }).filter(t => t.giorno !== "");
+                }).filter(t => t !== null);
 
                 popolaSelect(Array.from(setNomi).sort());
                 renderizza(tuttiITurni);
             } catch (err) {
-                document.getElementById('lista-turni').innerHTML = `<p class="text-center text-red-500">Errore dati.</p>`;
+                document.getElementById('lista-turni').innerHTML = `<p class="text-center text-red-500 text-xs py-10 italic font-medium">Errore di sincronizzazione col foglio Google.</p>`;
             }
         }
 
@@ -95,46 +128,52 @@
             const select = document.getElementById('filtroNome');
             nomi.forEach(nome => {
                 const opt = document.createElement('option');
-                opt.value = nome.toLowerCase(); opt.textContent = nome;
+                opt.value = nome.toLowerCase();
+                opt.textContent = nome;
                 select.appendChild(opt);
             });
         }
 
         function toggleDetails(element) {
-            // Se non ci sono note, non fare nulla
-            if (!element.querySelector('.details-content')) return;
-            element.classList.toggle('details-open');
+            if (element.classList.contains('has-note')) {
+                element.classList.toggle('details-open');
+            }
         }
 
         function renderizza(lista) {
             const container = document.getElementById('lista-turni');
+            if(lista.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-400 py-10 text-sm">Nessun servizio futuro in calendario.</p>`;
+                return;
+            }
+
             container.innerHTML = lista.map(t => `
-                <div onclick="toggleDetails(this)" class="card-anim bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${t.note ? 'cursor-pointer active:scale-[0.98]' : ''} transition-all">
+                <div onclick="toggleDetails(this)" class="card-anim bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all ${t.note ? 'cursor-pointer active:scale-[0.98] has-note' : ''}">
                     <div class="p-5 flex items-center space-x-4">
-                        <div class="bg-blue-50 text-blue-700 p-2 rounded-xl text-center min-w-[65px] border border-blue-100 shadow-sm">
+                        <div class="bg-blue-50 text-blue-700 p-2 rounded-xl text-center min-w-[70px] border border-blue-100 shadow-sm">
                             <span class="block text-[10px] font-black uppercase leading-none mb-1">${t.giorno}</span>
                             <span class="block text-sm font-black">${t.orario}</span>
                         </div>
-                        <div class="flex-1">
-                            <div class="flex items-center justify-between">
-                                <h3 class="font-bold text-gray-800 text-base leading-tight">${t.servizio}</h3>
-                                ${t.note ? '<span class="text-blue-500 animate-pulse text-sm">💬</span>' : ''}
+                        <div class="flex-1 overflow-hidden">
+                            <div class="flex items-center justify-between gap-2">
+                                <h3 class="font-bold text-gray-800 text-base leading-tight truncate">${t.servizio}</h3>
+                                ${t.note ? '<span class="text-blue-500 text-sm animate-pulse shrink-0">💬</span>' : ''}
                             </div>
-                            <p class="text-gray-500 text-xs mt-1.5 flex items-center font-medium">
-                                <span class="mr-1.5 opacity-50">👥</span> ${t.cantori || 'Nessuno assegnato'}
+                            <p class="text-gray-500 text-[11px] mt-1.5 flex items-center font-medium truncate">
+                                <span class="mr-1.5 opacity-40">👥</span> ${t.cantori || 'Da assegnare'}
                             </p>
                         </div>
                         ${t.note ? `
-                        <svg class="w-4 h-4 text-gray-300 arrow-icon transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        <svg class="w-4 h-4 text-gray-300 arrow-icon transition-transform duration-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         ` : ''}
                     </div>
                     
                     ${t.note ? `
-                    <div class="details-content bg-blue-50/50">
+                    <div class="details-content bg-blue-50/40">
                         <div class="p-4 pt-0">
                             <div class="bg-white p-3 rounded-xl border border-blue-100 shadow-inner">
-                                <span class="text-[9px] font-black text-blue-400 uppercase tracking-widest">Informazioni Extra</span>
-                                <p class="text-xs text-gray-600 mt-1 leading-relaxed">${t.note}</p>
+                                <span class="text-[9px] font-black text-blue-400 uppercase tracking-widest">Note del servizio</span>
+                                <p class="text-xs text-gray-600 mt-1.5 leading-relaxed font-medium">${t.note}</p>
                             </div>
                         </div>
                     </div>` : ''}
@@ -145,17 +184,32 @@
         function filtraTurni() {
             const scelto = document.getElementById('filtroNome').value;
             const titolo = document.getElementById('titolo-sezione');
+            
             if (!scelto) {
-                titolo.textContent = "Calendario Servizi";
+                titolo.textContent = "Prossimi impegni";
                 renderizza(tuttiITurni);
             } else {
                 titolo.textContent = `Servizi per: ${scelto}`;
-                renderizza(tuttiITurni.filter(t => t.cantori.toLowerCase().includes(scelto)));
+                const filtrati = tuttiITurni.filter(t => t.cantori.toLowerCase().includes(scelto));
+                renderizza(filtrati);
             }
         }
 
+        function richiediPermesso() {
+            if (!messaging) return alert("Notifiche non supportate su questo dispositivo.");
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    messaging.getToken({ vapidKey: 'TUA_CHIAVE_VAPID' })
+                    .then(token => alert("Notifiche attivate!"))
+                    .catch(err => console.error(err));
+                }
+            });
+        }
+
         init();
-        if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
     </script>
 </body>
 </html>
