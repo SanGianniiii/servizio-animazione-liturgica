@@ -73,6 +73,12 @@
     </main>
 
     <script>
+        // Controlla all'avvio se l'utente è già registrato
+window.addEventListener('load', () => {
+    if (localStorage.getItem('notificheAttivate') === 'true') {
+        document.getElementById('btn-campanella').style.display = 'none';
+    }
+});
         // --- CONFIGURAZIONE ---
         const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSBN24W-OjHLzE_nGhR55i_Y56r03-lgM4VcjuvDkF7thIsOsBZiq3XqLPUWRG3Hnohil1fJPf3PH0U/pub?output=csv";
         
@@ -308,6 +314,7 @@ function richiediPermesso() {
     </script>
 </body>
 </html>
+
 
 
 
