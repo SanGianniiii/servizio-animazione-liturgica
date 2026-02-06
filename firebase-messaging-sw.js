@@ -11,6 +11,5 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
-
-// Questo serve per mostrare la notifica quando il telefono è in standby
-// NON aggiungere altre logiche di 'showNotification' qui se arrivano doppie
+// Non aggiungiamo altro: Firebase mostrerà la notifica da solo 
+// usando il titolo e il corpo che inviamo dallo script.
