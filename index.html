@@ -262,13 +262,11 @@ function richiediPermesso() {
     Notification.requestPermission().then(permission => {
         if (permission === 'granted') {
             
-            // --- MODIFICA FONDAMENTALE PER GITHUB PAGES ---
-            // Aspettiamo che il Service Worker sia pronto prima di chiedere il token
             navigator.serviceWorker.ready.then((registration) => {
                 
                 messaging.getToken({ 
                     vapidKey: 'BIdWi-7e4W9tDz0Gr0o9mQSeo0Ys-aud2xeibLW9kkqV8smq9eSEttfpGbvgpJVRMFP8_V7vaivITSs7tg38bAI',
-                    serviceWorkerRegistration: registration // Forza Firebase a usare questo SW
+                    serviceWorkerRegistration: registration 
                 })
                 .then(token => {
                     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyACPqBqb9VYqkxuelZT2tQxmplMcIvjXlXEQDQljcqh1kOj6AlVBjG5M_Ckar4SMtRiw/exec";
@@ -280,17 +278,20 @@ function richiediPermesso() {
                             nome: nomeCantore, 
                             token: token 
                         })
+                    }).then(() => {
+                        // --- AGGIUNTA QUI: Nasconde la campanella subito dopo l'invio ---
+                        localStorage.setItem('notificheAttivate', 'true');
+                        document.getElementById('btn-campanella').style.display = 'none';
+                        // -------------------------------------------------------------
+                        
+                        alert("Ottimo " + nomeCantore + "! Notifiche attivate e collegate al foglio turni.");
                     });
-
-                    alert("Ottimo " + nomeCantore + "! Notifiche attivate e collegate al foglio turni.");
-                    console.log("Token inviato:", token);
                 })
                 .catch(err => {
                     console.error("Errore recupero token:", err);
-                    alert("Errore durante l'attivazione. Assicurati di aver rinominato sw.js in firebase-messaging-sw.js");
+                    alert("Errore durante l'attivazione.");
                 });
             });
-            // ----------------------------------------------
 
         } else {
             alert("Hai negato il permesso per le notifiche.");
@@ -314,6 +315,7 @@ function richiediPermesso() {
     </script>
 </body>
 </html>
+
 
 
 
