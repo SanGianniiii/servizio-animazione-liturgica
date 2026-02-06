@@ -244,22 +244,55 @@
         }
 
         function richiediPermesso() {
-            if (!messaging) return alert("Notifiche non supportate.");
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                    // Sostituisci con la VAPID Key presa da Firebase > Cloud Messaging > Web Push
-                    messaging.getToken({ vapidKey: 'BFZrSR_2DQTR8QZYhsgG1nywKv9H_HaHphBL-qeOb9caRnrgJNJjyoWMccZMbPbF1gt5VLL8KuhxgKo-x4OzT6w' })
-                    .then(token => alert("Notifiche attivate con successo!"))
-                    .catch(err => console.error(err));
-                }
+    if (!messaging) return alert("Notifiche non supportate dal browser.");
+
+    // 1. Chiediamo subito il nome al cantore
+    const nomeCantore = prompt("Inserisci il tuo Nome e Cognome (es. Mario Rossi):");
+    
+    if (!nomeCantore || nomeCantore.trim() === "") {
+        alert("Il nome è necessario per associare le notifiche al tuo turno.");
+        return;
+    }
+
+    Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+            // 2. Recuperiamo il Token da Firebase
+            messaging.getToken({ 
+                vapidKey: 'BFZrSR_2DQTR8QZYhsgG1nywKv9H_HaHphBL-qeOb9caRnrgJNJjyoWMccZMbPbF1gt5VLL8KuhxgKo-x4OzT6w' 
+            })
+            .then(token => {
+                // 3. MANDIAMO I DATI AL TUO GOOGLE SHEET
+                // Sostituisci l'URL qui sotto con quello della tua WEB APP (copiato da Apps Script)
+                const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyACPqBqb9VYqkxuelZT2tQxmplMcIvjXlXEQDQljcqh1kOj6AlVBjG5M_Ckar4SMtRiw/exec";
+
+                fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Necessario per comunicare con Google Script
+                    body: JSON.stringify({ 
+                        nome: nomeCantore, 
+                        token: token 
+                    })
+                });
+
+                alert("Ottimo " + nomeCantore + "! Notifiche attivate e collegate al foglio turni.");
+                console.log("Token inviato:", token);
+            })
+            .catch(err => {
+                console.error("Errore recupero token:", err);
+                alert("Errore durante l'attivazione. Riprova.");
             });
+        } else {
+            alert("Hai negato il permesso per le notifiche.");
         }
+    });
+}
 
         init();
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
     </script>
 </body>
 </html>
+
 
 
 
