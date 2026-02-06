@@ -2,14 +2,15 @@ importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js')
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
 // ⚠️ INCOLLA QUI LA STESSA CONFIGURAZIONE CHE HAI MESSO NELL'INDEX
-const firebaseConfig = {
-            apiKey: "AIzaSyBjmVbMe9PFI6eL7ZmehxqvTqWouPPMSXU",
-            authDomain: "cantoriapp-ba256.firebaseapp.com",
-            projectId: "cantoriapp-ba256",
-            storageBucket: "cantoriapp-ba256.firebasestorage.app",
-            messagingSenderId: "150338748496",
-            appId: "1:150338748496:web:28829d560e26073ecf5155"
-        };
+ const firebaseConfig = {
+    apiKey: "AIzaSyAIB56h4OiO79B1AXMiG75C_EchLcI7S5s",
+    authDomain: "cantoriapp-e18b1.firebaseapp.com",
+    projectId: "cantoriapp-e18b1",
+    storageBucket: "cantoriapp-e18b1.firebasestorage.app",
+    messagingSenderId: "21232278125",
+    appId: "1:21232278125:web:6b82fed0650b385a717d64",
+    measurementId: "G-5CDCBR02FM"
+  };
 
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
@@ -29,3 +30,4 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(title, options);
 
 });
+
