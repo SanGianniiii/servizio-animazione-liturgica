@@ -243,10 +243,9 @@
             }
         }
 
-        function richiediPermesso() {
+function richiediPermesso() {
     if (!messaging) return alert("Notifiche non supportate dal browser.");
 
-    // 1. Chiediamo subito il nome al cantore
     const nomeCantore = prompt("Inserisci il tuo Nome e Cognome (es. Mario Rossi):");
     
     if (!nomeCantore || nomeCantore.trim() === "") {
@@ -256,31 +255,37 @@
 
     Notification.requestPermission().then(permission => {
         if (permission === 'granted') {
-            // 2. Recuperiamo il Token da Firebase
-            messaging.getToken({ 
-                vapidKey: 'BIdWi-7e4W9tDz0Gr0o9mQSeo0Ys-aud2xeibLW9kkqV8smq9eSEttfpGbvgpJVRMFP8_V7vaivITSs7tg38bAI' 
-            })
-            .then(token => {
-                // 3. MANDIAMO I DATI AL TUO GOOGLE SHEET
-                // Sostituisci l'URL qui sotto con quello della tua WEB APP (copiato da Apps Script)
-                const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyACPqBqb9VYqkxuelZT2tQxmplMcIvjXlXEQDQljcqh1kOj6AlVBjG5M_Ckar4SMtRiw/exec";
+            
+            // --- MODIFICA FONDAMENTALE PER GITHUB PAGES ---
+            // Aspettiamo che il Service Worker sia pronto prima di chiedere il token
+            navigator.serviceWorker.ready.then((registration) => {
+                
+                messaging.getToken({ 
+                    vapidKey: 'BIdWi-7e4W9tDz0Gr0o9mQSeo0Ys-aud2xeibLW9kkqV8smq9eSEttfpGbvgpJVRMFP8_V7vaivITSs7tg38bAI',
+                    serviceWorkerRegistration: registration // Forza Firebase a usare questo SW
+                })
+                .then(token => {
+                    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyACPqBqb9VYqkxuelZT2tQxmplMcIvjXlXEQDQljcqh1kOj6AlVBjG5M_Ckar4SMtRiw/exec";
 
-                fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', // Necessario per comunicare con Google Script
-                    body: JSON.stringify({ 
-                        nome: nomeCantore, 
-                        token: token 
-                    })
+                    fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        body: JSON.stringify({ 
+                            nome: nomeCantore, 
+                            token: token 
+                        })
+                    });
+
+                    alert("Ottimo " + nomeCantore + "! Notifiche attivate e collegate al foglio turni.");
+                    console.log("Token inviato:", token);
+                })
+                .catch(err => {
+                    console.error("Errore recupero token:", err);
+                    alert("Errore durante l'attivazione. Assicurati di aver rinominato sw.js in firebase-messaging-sw.js");
                 });
-
-                alert("Ottimo " + nomeCantore + "! Notifiche attivate e collegate al foglio turni.");
-                console.log("Token inviato:", token);
-            })
-            .catch(err => {
-                console.error("Errore recupero token:", err);
-                alert("Errore durante l'attivazione. Riprova.");
             });
+            // ----------------------------------------------
+
         } else {
             alert("Hai negato il permesso per le notifiche.");
         }
@@ -289,13 +294,21 @@
 
         init();
         if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./firebase-messaging-sw.js')
-    .then((reg) => console.log('Service Worker registrato!', reg))
-    .catch((err) => console.error('Errore registrazione SW:', err));
+    // Registriamo il Service Worker specificando il percorso corretto per GitHub Pages
+    navigator.serviceWorker.register('./firebase-messaging-sw.js', {
+        scope: './' 
+    })
+    .then((reg) => {
+        console.log('Service Worker registrato con successo nel sottodominio!', reg);
+    })
+    .catch((err) => {
+        console.error('Errore registrazione SW:', err);
+    });
 }
     </script>
 </body>
 </html>
+
 
 
 
